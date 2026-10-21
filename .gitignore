@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# ComfyUI / models
+models/
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.bin
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
