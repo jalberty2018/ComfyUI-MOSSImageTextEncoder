@@ -1,0 +1,15 @@
+[project]
+name = "comfyui-mossimagetextencoder"
+version = "1.0.0"
+description = "ComfyUI node that feeds a reference image through the Qwen3.5-9B vision tower and leaves its embeddings in the text prompt (MOSS-Image conditioning)."
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/ThetaCursed/ComfyUI-MOSSImageTextEncoder"
+
+[tool.comfy]
+DisplayName = "MOSS-Image Vision Text Encode"
+Icon = ""

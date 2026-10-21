@@ -54,7 +54,51 @@ Start with `image_weight = 1.0`, `vision_megapixels = 1.0`, denoise `1.0`.
 
 ## Install
 
-Copy this folder into `ComfyUI/custom_nodes/` and restart ComfyUI.
+```bash
+cd ComfyUI/custom_nodes
+git clone https://github.com/ThetaCursed/ComfyUI-MOSSImageTextEncoder.git
+```
+
+Then restart ComfyUI. No extra dependencies — the node only uses `comfy.utils` and the
+text encoder you already load.
+
+## Troubleshooting
+
+**The node does not show up after cloning.** This repo has no install step, so a missing
+node is almost always the folder layout or a stale process, not the node itself.
+
+1. **Check the folder depth.** ComfyUI scans exactly one level inside `custom_nodes/`.
+   Cloning from inside an already-created folder adds an extra level, which is silently ignored:
+
+   ```
+   ✅ custom_nodes/ComfyUI-MOSSImageTextEncoder/__init__.py
+   ❌ custom_nodes/ComfyUI-MOSSImageTextEncoder/ComfyUI-MOSSImageTextEncoder/__init__.py
+   ```
+
+   Fix: `cd custom_nodes/ComfyUI-MOSSImageTextEncoder && mv ComfyUI-MOSSImageTextEncoder/* .`
+   (or just re-clone from `custom_nodes/`).
+
+2. **Fully restart ComfyUI.** The node list is built at startup; "Refresh" in the browser
+   (or `F5`) does not rescan `custom_nodes/`. Stop the server and start it again.
+
+3. **Clone went to the wrong install.** Portable, Desktop and manual installs each have their
+   own `custom_nodes/` (Desktop on Windows: `%USERPROFILE%\Documents\ComfyUI\custom_nodes`).
+   Confirm the path from the startup banner — the log line
+   `Adding extra search path custom_nodes <path>` shows which one is live.
+
+4. **Check the startup log** for the folder name. A line like
+   `Cannot import ... ComfyUI-MOSSImageTextEncoder: <error>` is an actual code/import error —
+   paste that line in the issue. No line at all means the folder was not scanned (steps 1–3).
+
+5. **Confirm the clone is complete**, not an empty directory left by a failed/aborted clone:
+
+   ```bash
+   ls custom_nodes/ComfyUI-MOSSImageTextEncoder
+   # expected: __init__.py nodes.py README.md LICENSE pyproject.toml workflow.json assets
+   ```
+
+If it still fails, open an issue with the startup log excerpt and the output of
+`git -C custom_nodes/ComfyUI-MOSSImageTextEncoder rev-parse HEAD`.
 
 ## License
 
