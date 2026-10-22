@@ -473,6 +473,11 @@
           "links": [
             65
           ]
+        },
+        {
+          "name": "phrase_report",
+          "type": "STRING",
+          "links": null
         }
       ],
       "properties": {
@@ -484,6 +489,7 @@
         1,
         1,
         "",
+        false,
         false
       ],
       "widgets_values_named": {
@@ -492,7 +498,8 @@
         "image_weight": 1,
         "vision_megapixels": 1,
         "system_prompt": "",
-        "print_prompt": false
+        "print_prompt": false,
+        "phrase_weighting": false
       }
     },
     {

@@ -7,6 +7,9 @@ which is exactly what the core ``CLIPTextEncode`` produces for text-only prompts
 """
 
 import math
+import json
+
+from .phrase_weighting import prepare_prompt, build_layout, apply_weighting
 
 import comfy.utils
 
@@ -57,11 +60,17 @@ class TextEncodeMOSSImageVision:
                     "default": False,
                     "tooltip": "Print the fully assembled prompt sent to the Qwen3.5 text encoder.",
                 }),
+                "phrase_weighting": ("BOOLEAN", {
+                    "default": False,
+                    "tooltip": "Enable (phrase:weight) in positive and negative prompts, e.g. "
+                               "(red jacket:2). 1 is neutral. Does not change image_weight. "
+                               "Off preserves the original encoder behavior.",
+                }),
             },
         }
 
-    RETURN_TYPES = ("CONDITIONING", "CONDITIONING")
-    RETURN_NAMES = ("positive", "negative")
+    RETURN_TYPES = ("CONDITIONING", "CONDITIONING", "STRING")
+    RETURN_NAMES = ("positive", "negative", "phrase_report")
     FUNCTION = "encode"
     CATEGORY = "model/conditioning/moss_image"
     DESCRIPTION = (
@@ -135,7 +144,12 @@ class TextEncodeMOSSImageVision:
     # ------------------------------------------------------------------ main
 
     def encode(self, clip, prompt, negative_prompt="", image=None, image_weight=1.0,
-               vision_megapixels=1.0, system_prompt="", print_prompt=False):
+               vision_megapixels=1.0, system_prompt="", print_prompt=False, phrase_weighting=False):
+
+        prompt, positive_spans = prepare_prompt(prompt, phrase_weighting)
+        negative_prompt, negative_spans = prepare_prompt(negative_prompt, phrase_weighting)
+        if phrase_weighting and (positive_spans or negative_spans) and "<|" in system_prompt:
+            raise ValueError("Use plain text in system_prompt when applying phrase weights.")
 
         use_images = image is not None and image_weight > 0.0 and image.numel() > 0
         images_vl = self._prepare_references(image if use_images else None, vision_megapixels, image_weight)
@@ -150,20 +164,31 @@ class TextEncodeMOSSImageVision:
                 len(images_vl), image_weight, vision_megapixels))
             print("=======================================================================\n")
 
-        def _encode(text):
+        def _encode(text, clean, spans):
             tokens = clip.tokenize(text, images=images_vl)
+            layout = None
+            if spans:
+                # All references and the optional system message precede the user text.
+                suffix = "<|im_end|>\n<|im_start|>assistant\n" + THINK_OPEN
+                offset = len(text) - len(suffix) - len(clean)
+                layout = build_layout(text, offset, spans, tokens)
             try:
-                return clip.encode_from_tokens_scheduled(tokens)
+                conditioning = clip.encode_from_tokens_scheduled(tokens)
             except NotImplementedError as exc:
                 hint = self._fp8_hint(exc, images_vl)
                 if hint is not None:
                     raise hint from exc
                 raise
+            if layout is not None:
+                return apply_weighting(conditioning, layout, clean)
+            return conditioning, {"active": False, "clean_text": clean, "entries": []}
 
-        positive = _encode(positive_prompt)
-        negative = _encode(negative_text)
+        positive, positive_report = _encode(positive_prompt, prompt, positive_spans)
+        negative, negative_report = _encode(negative_text, negative_prompt, negative_spans)
 
-        return (positive, negative)
+        report = {"enabled": phrase_weighting, "references": len(images_vl),
+                  "positive": positive_report, "negative": negative_report}
+        return (positive, negative, json.dumps(report, ensure_ascii=False, indent=2))
 
 
 NODE_CLASS_MAPPINGS = {
